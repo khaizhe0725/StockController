@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock Manager</title>
+    <style>
+        body {
+            background: #121212;
+            color: #fff;
+            font-family: Poppins, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        input, button {
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            margin: 5px;
+            font-size: 16px;
+        }
+
+        input {
+            background: #1e1e1e;
+            color: #fff;
+        }
+
+        button {
+            background: #0d6efd;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0b5ed7;
+        }
+
+        .product-card {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .product-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .delete-btn {
+            background: #d9534f;
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+
+        .delete-btn:hover {
+            background: #c9302c;
+        }
+
+        .log-box {
+            background: #0f0f0f;
+            padding: 10px;
+            margin-top: 10px;
+            height: 120px;
+            overflow-y: auto;
+            border-radius: 8px;
+            border: 1px solid #333;
+            font-size: 14px;
+        }
+
+        .flex {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .stock-input {
+            width: 120px;
+            background: #ffffff;  
+            color: #000;          
+            border: 2px solid #888; 
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Stock Manager</h1>
+
+<div class="top-bar">
+    <input id="searchBar" placeholder="🔍 Search product..." onkeyup="filterProducts()">
+</div>
+
+<div class="top-bar">
+    <input id="newProductName" placeholder="➕ Add new product">
+    <button onclick="addProduct()">Add Product</button>
+</div>
+
+<div id="productList"></div>
+
+<script>
+    // Load saved data when page opens
+    let products = JSON.parse(localStorage.getItem("products")) || {};
+
+    // Save to localStorage
+    function saveData() {
+        localStorage.setItem("products", JSON.stringify(products));
+    }
+
+    function addProduct() {
+        const name = document.getElementById("newProductName").value.trim();
+        if (name === "") {
+            alert("Enter product name!");
+            return;
+        }
+
+        if (products[name]) {
+            alert("Product already exists!");
+            return;
+        }
+
+        products[name] = {
+            stock: 0,
+            logs: []
+        };
+
+        saveData();
+        document.getElementById("newProductName").value = "";
+        displayProducts();
+    }
+
+    function deleteProduct(name) {
+        if (confirm("Delete product '" + name + "'?")) {
+            delete products[name];
+            saveData();
+            displayProducts();
+        }
+    }
+
+    function stockIn(name) {
+        const input = document.getElementById("qty-" + name);
+        const qty = parseInt(input.value);
+
+        if (isNaN(qty) || qty <= 0) {
+            alert("Enter valid number!");
+            return;
+        }
+
+        products[name].stock += qty;
+        products[name].logs.push("IN: +" + qty + " (" + new Date().toLocaleString() + ")");
+        input.value = "";
+        saveData();
+        displayProducts();
+    }
+
+    function stockOut(name) {
+        const input = document.getElementById("qty-" + name);
+        const qty = parseInt(input.value);
+
+        if (isNaN(qty) || qty <= 0) {
+            alert("Enter valid number!");
+            return;
+        }
+
+        if (qty > products[name].stock) {
+            alert("Not enough stock!");
+            return;
+        }
+
+        products[name].stock -= qty;
+        products[name].logs.push("OUT: -" + qty + " (" + new Date().toLocaleString() + ")");
+        input.value = "";
+        saveData();
+        displayProducts();
+    }
+
+    function displayProducts() {
+        let list = document.getElementById("productList");
+        list.innerHTML = "";
+
+        for (let name in products) {
+            let card = `
+                <div class="product-card" data-name="${name.toLowerCase()}">
+                    <div class="product-header">
+                        <h2>${name}</h2>
+                        <button class="delete-btn" onclick="deleteProduct('${name}')">🗑 Delete</button>
+                    </div>
+                    <p><b>Current Stock:</b> ${products[name].stock}</p>
+
+                    <div class="flex">
+                        <input id="qty-${name}" class="stock-input" placeholder="Quantity">
+                        <button onclick="stockIn('${name}')">Stock In</button>
+                        <button onclick="stockOut('${name}')">Stock Out</button>
+                    </div>
+
+                    <div class="log-box">
+                        ${products[name].logs.map(l => `<div>${l}</div>`).join("")}
+                    </div>
+                </div>
+            `;
+            list.innerHTML += card;
+        }
+    }
+
+    function filterProducts() {
+        let search = document.getElementById("searchBar").value.toLowerCase();
+        let cards = document.querySelectorAll(".product-card");
+
+        cards.forEach(card => {
+            let name = card.getAttribute("data-name");
+            card.style.display = name.includes(search) ? "block" : "none";
+        });
+    }
+
+    // Load saved product list when page opens
+    displayProducts();
+</script>
+
+</body>
+</html>
